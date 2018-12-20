@@ -102,6 +102,8 @@ class uwblocalization {
   KFState state_;
   
   Eigen::MatrixXd obser_cov_;
+  
+  int num;
 };
 
 

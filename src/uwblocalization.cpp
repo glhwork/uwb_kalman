@@ -9,7 +9,6 @@ typedef std::vector<std::string> StringVec;
 #define RAND(a,b) ((rand()%(b-a+1))+a-1)
 
 uwblocalization::uwblocalization(ros::NodeHandle& nh) {
-  std::cout << "i start " << std::endl;
   state_ = INIT;
   observe_N_ = 3;
   sqrerr_ = 0.0;
@@ -19,10 +18,11 @@ uwblocalization::uwblocalization(ros::NodeHandle& nh) {
   observer_.reserve(observe_N_);
   obser_cov_ = Eigen::MatrixXd::Zero(1,1);
   obser_cov_(0,0) = 1;
+  num = 0;
   //n_.getParam("obser_cov_", obser_cov_(0,0));
   
-  range_sub_ = nh.subscribe<sensor_msgs::Range>("uwb_raw_data", 1, &uwblocalization::OnRange, this);
-  uwb_pub_ = nh.advertise<nav_msgs::Odometry>("uwb_localization_result_with_ekf", 10);
+  range_sub_ = nh.subscribe<sensor_msgs::Range>("/uwb_raw_data", 1, &uwblocalization::OnRange, this);
+  uwb_pub_ = nh.advertise<nav_msgs::Odometry>("/uwb_localization_result_with_ekf", 10);
   odom_path_pub_ = nh.advertise<nav_msgs::Path>("/odom_path", 1);
   
   //ParameterReader param("/home/m1/Desktop/cat_tmp/src/uwb_localization/include/uwb_test/parameters.txt");
@@ -56,7 +56,6 @@ uwblocalization::uwblocalization(ros::NodeHandle& nh) {
     // vector of coordinates of all the anchors
     uwbanchors_.emplace_back(anchorcoordinate_tmp);
   }
-  std::cout << "finish before initial" << std::endl;
   Init();
   
 }
@@ -99,6 +98,9 @@ void uwblocalization::OnRange(const sensor_msgs::RangeConstPtr &uwb) {
   double snr = 20.0 * std::log10(uwb->max_range / uwb->min_range + 0.001);
   
   // calculate the snr to determine whether this value should be droped
+  std::cout << "<<========================================>>" << std::endl;
+  std::cout << "round " << num << std::endl;
+  num++;
   if(snr < 10.0) {
     //std::cout << uwb->header.frame_id <<  " low snr( " << snr << " ) !!!" << std::endl;
     return;
@@ -119,10 +121,15 @@ void uwblocalization::OnRange(const sensor_msgs::RangeConstPtr &uwb) {
     if (fabs(deltatime) > 2.0) {
       deltatime = 0.0;
       state_ = LOST;
+      //InitPos();
       Init();
     }
+    std::cout << "<<before push============================>>" << std::endl;
+    std::cout << "before push" << observer_.size() << std::endl;
     if (state_ != ONFILTER) {
       observer_.emplace_back(uwb);
+      
+      // ============================
       if (ValidObs() && InitPos()) {
         ;
       } else {
@@ -226,6 +233,7 @@ int uwblocalization::ValidObs() {
     ret = 0;
     return ret;
   }
+  std::cout << "size inf valid obs : " << observer_.size() << std::endl;
   if (observer_.size() == observe_N_) {
     int count = 0, count_id = 0;
     count |= (1 << (vuwbidqueue_[vuwbidqueue_.size() - 1 - 0]) + 1);
@@ -276,6 +284,12 @@ bool uwblocalization::InitPos() {
   Eigen::Vector3d x_lsq;
   x_lsq.setZero();
   int count = 0;
+  // ========================
+  std::cout << "size of observer : " << observer_.size() << std::endl;
+ /* if (observer_.size() < 3)
+  {
+  	return false;
+  }*/
   do {
     for (int i = 0; i < observe_N_; i++) {
       int index = std::stoi(observer_[i]->header.frame_id) - 101;
@@ -295,6 +309,7 @@ bool uwblocalization::InitPos() {
     X0[2] = 0.1;
     count ++;
   } while(count < 100 && sqrt(x_lsq[0] * x_lsq[0] + x_lsq[1] * x_lsq[1]) > 0.5);
+  std::cout << "finish while loop" << std::endl;
   v = B * x_lsq - l;
   double err = 0;
   for (int i = 0; i < uwbanchors_N_; i++) {

@@ -13,14 +13,14 @@
 //}
 int main(int argc, char *argv[])
 {
-  std::cout << "st" << std::endl;
   ros::init(argc, argv, "uwb_localization");
-  ros::NodeHandle n("~");
+  ros::NodeHandle n;
   //signal(SIGINT, my_func);
-  std::cout << "begin func" << std::endl;
   uwblocalization uwblocater(n);
+  ros::Rate r(1);
   while(ros::ok()){
     ros::spinOnce();
+    r.sleep();
   }
   return 0;
 }
