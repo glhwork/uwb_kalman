@@ -42,20 +42,20 @@ add_library(rcm_net
   src/rcm.cpp
   src/rcmIf.cpp
   src/rn.cpp
-  
-  src/uwblocalization.cpp
   src/utils.cpp
   src/KalmanFilter.cpp
+  
+  src/uwblocalization/uwblocalization.cpp
+  src/kf_localization/KalmanLocalization.cpp
 )
 
 add_executable(uwb_data
-  src/uwb_data.cpp
+  src/uwblocalization/uwb_data.cpp
+  src/uwblocalization/uwblocalization.cpp
   
   src/rcm.cpp
   src/rcmIf.cpp
   src/rn.cpp
-  
-  src/uwblocalization.cpp
   src/utils.cpp
   src/KalmanFilter.cpp
 )
@@ -66,12 +66,22 @@ target_link_libraries(uwb_data
 )
 
 add_executable(uwb_driver
-  src/uwb_driver.cpp
+  src/uwblocalization/uwb_driver.cpp
   src/rcm.cpp
   src/rcmIf.cpp
   src/rn.cpp
 )
 target_link_libraries(uwb_driver
+  rcm_net
+  ${catkin_LIBRARIES}
+)
+
+add_executable(kalman_main
+  src/kf_localization/kalman_main.cpp
+  src/kf_localization/KalmanLocalization.cpp
+  src/KalmanFilter.cpp
+)
+target_link_libraries(kalman_main
   rcm_net
   ${catkin_LIBRARIES}
 )
