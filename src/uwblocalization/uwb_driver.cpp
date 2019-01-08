@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
   ros::init(argc, argv, "uwb_driver");
   ros::NodeHandle n;
   ros::Publisher uwb_pub = n.advertise<sensor_msgs::Range>("uwb_raw_data", 1000);
-  ros::Rate loop_rate(100);
+  ros::Rate loop_rate(10);
   int infoMsgType;
 
   //char msgType[100];
@@ -93,9 +93,14 @@ int main(int argc, char *argv[])
       double snr = 20.0 * std::log10(rangeInfo.vPeak / rangeInfo.noise == 0 ? 0.001 : rangeInfo.noise);
       //printf("rangeInfo: id %d range %u status %d status %d snr %f time %u\n",rangeInfo.responderId,rangeInfo.precisionRangeMm, rangeInfo.reqLEDFlags, rangeInfo.respLEDFlags,snr,rangeInfo.timestamp);
 
+      /******
       if (snr < 40 || rangeInfo.reqLEDFlags > 9 || rangeInfo.respLEDFlags > 9) {
+        std::cout << "singal noise ratio of " << std::to_string(rangeInfo.responderId) << " is " << snr << std::endl;
+         
         continue;
       }
+      ******/
+      
       //printf("rangeInfo: id %d range %u status %d status %d snr %f\n",rangeInfo.responderId,rangeInfo.precisionRangeMm, rangeInfo.reqLEDFlags, rangeInfo.respLEDFlags,snr);
       sensor_msgs::Range msg;
       msg.header.stamp = ros::Time::now();

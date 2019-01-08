@@ -6,7 +6,9 @@
 #include <Eigen/Dense>
 
 #include "yaml-cpp/yaml.h"
+#include "ros/ros.h"
 #include "sensor_msgs/Range.h"
+#include "nav_msgs/Odometry.h"
 #include "KalmanFilter.h"
 
 namespace kalman {
@@ -26,8 +28,10 @@ struct IdRange {
 
 class KalmanLocalization {
  public:
-  KalmanLocalization(std::string file_address_1,
+  KalmanLocalization(ros::NodeHandle n,
+                     std::string file_address_1,
                      std::string file_address_2);
+  KalmanLocalization() {}
   ~KalmanLocalization() {}
   
   // read the config file of anchors
@@ -40,13 +44,19 @@ class KalmanLocalization {
   // compute the initial position
   void InitPos(const std::vector<IdRange>& info_vec);
   
+  void GetPosition(const sensor_msgs::Range& range);
+  
  private:
   KalmanFilter filter;
   State filter_state;
+  std::vector<IdRange> info_vec;
   Eigen::Matrix<double, 4, 3> anchor_posi;
   Eigen::Vector3d acc;
   Eigen::Vector3d velo;
+  
+  double pre_time;
   bool config_flag;
+  ros::Publisher odom_pub;
 
 
 }; // class KalmanLocalization

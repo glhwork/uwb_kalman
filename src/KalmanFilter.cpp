@@ -117,7 +117,7 @@ void KalmanFilter::StateUpdate(const int uwb_seq,
     Eigen::MatrixXd matrix_denomi = h * state_cov * h.transpose() + obser_cov;
     Eigen::MatrixXd k_t;
     k_t = state_cov * h.transpose() * matrix_denomi.inverse();
-  
+
     // x = x + Kt(z - H * x)
     // P = (I - Kt * H) * P
     state = state + k_t * error;

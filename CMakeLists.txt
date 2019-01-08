@@ -78,7 +78,7 @@ target_link_libraries(uwb_driver
 )
 
 add_executable(kalman_main
-  src/kf_localization/kalman_main.cpp
+  src/kf_localization/main.cpp
   src/kf_localization/KalmanLocalization.cpp
   src/KalmanFilter.cpp
 )

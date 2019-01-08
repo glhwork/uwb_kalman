@@ -5,13 +5,25 @@ using Eigen::ComputeThinV;
 
 namespace kalman {
 
-KalmanLocalization::KalmanLocalization(std::string file_address_1,
+KalmanLocalization::KalmanLocalization(ros::NodeHandle n,
+                                       std::string file_address_1,
                                        std::string file_address_2) {
-  filter_state = Failed;
+  filter_state = Init;
   config_flag = false;
+  info_vec.clear();
+  odom_pub = n.advertise<nav_msgs::Odometry>("odom",10);
   
   ReadConfig(file_address_1);
-  ReadAcc(file_address_2);  
+  ReadAcc(file_address_2);
+  
+  filter.GetAnchorConfig(anchor_posi);
+  
+  // struct 'Acceleration' is defined in 'KalmanFilter.cpp'
+  Acceleration a;
+  a.x = acc(0);
+  a.y = acc(1);
+  a.z = acc(2);
+  filter.GetAcceleration(a);  
 }
 
 void KalmanLocalization::ReadConfig(std::string file_address) {
@@ -47,7 +59,6 @@ void KalmanLocalization::ReadAcc(std::string address) {
   
 void KalmanLocalization::InitState(const sensor_msgs::Range& range) {
 
-  std::vector<IdRange> info_vec;
   IdRange info;
   info.id = std::stoi(range.header.frame_id);
   info.range = range.range;
@@ -61,15 +72,15 @@ void KalmanLocalization::InitState(const sensor_msgs::Range& range) {
         count++;
       }
     }
-    if (count > 0) {
+    if (0 == count) {
       info_vec.push_back(info);
     }
   }
   
-  if (3 == info_vec.size() && Failed == filter_state) {
+  if (3 == info_vec.size() && Init == filter_state) {
     InitPos(info_vec);
     info_vec.clear();
-    filter_state = OnFilter;
+   // filter_state = OnFilter;
   }
   
 }
@@ -86,21 +97,21 @@ void KalmanLocalization::InitPos(const std::vector<IdRange>& info_vec) {
   rows = n * (n-1) / 2;
   Eigen::MatrixXd m(rows, 3);
   Eigen::VectorXd result(rows);
-
+  
   for (size_t i = 0; i < n; i++) {
 
     double x1, x2, y1, y2, z1, z2;
     double d1, d2;
     
-    int index_i = 101 - info_vec[i].id;
+    int index_i = info_vec[i].id - 101;
     x1 = anchor_posi(index_i,0);
     y1 = anchor_posi(index_i,1);
     z1 = anchor_posi(index_i,2);
     d1 = info_vec[i].range;
-
+    
     for (size_t j = i+1; j < n; j++) {
 
-      int index_j = 101 - info_vec[j].id;
+      int index_j = info_vec[j].id - 101;
       x2 = anchor_posi(index_j,0);
       y2 = anchor_posi(index_j,0);
       z2 = anchor_posi(index_j,0);
@@ -116,7 +127,7 @@ void KalmanLocalization::InitPos(const std::vector<IdRange>& info_vec) {
       count++;
     }    
   }	
-
+  
   location = m.jacobiSvd(ComputeThinU | ComputeThinV).solve(result);
   
   Eigen::VectorXd init_state(6);
@@ -124,7 +135,75 @@ void KalmanLocalization::InitPos(const std::vector<IdRange>& info_vec) {
   Eigen::MatrixXd init_cov = Eigen::MatrixXd::Identity(6,6);
   filter.StateInit(init_state, init_cov);
   
-  std::cout << "position init success!!" << std::endl;
+  nav_msgs::Odometry odom;
+  odom.header.stamp = ros::Time::now();
+  odom.pose.pose.position.x = init_state(0);
+  odom.pose.pose.position.y = init_state(1);
+  odom.pose.pose.position.z = init_state(2);
+  
+  odom_pub.publish(odom);
+  
+  std::cout << "Initial position is " << " [ x: " << init_state(0) 
+                                      << " y: "   << init_state(1)
+                                      << " z: "   << init_state(2) 
+                                      << " ]"     << std::endl;
+  
+}
+
+void KalmanLocalization::GetPosition(const sensor_msgs::Range& range) {
+  
+  int uwb_seq = std::stoi(range.header.frame_id) - 101;
+  double snr = 20.0 * std::log10(range.max_range / range.min_range + 0.001);  
+  if (snr < 10) {
+    return;
+  }
+  if (Init == filter_state) {
+    pre_time = range.header.stamp.toSec();
+  }
+  if (Init == filter_state) {
+    InitState(range);
+    if (OnFilter == filter_state) {
+      std::cout << "Init successfully" << std::endl;
+    }
+    return;
+  }
+  
+  double cur_time;
+  if (OnFilter == filter_state) {
+    cur_time = range.header.stamp.toSec();
+    double delta_t = cur_time - pre_time;
+    if (delta_t > 2.0) {
+      std::cout << "long time!!!" << std::endl;
+      filter_state = Init;
+      return;
+    }
+    filter.StatePredict(delta_t);
+    
+    Eigen::MatrixXd obser_cov = Eigen::MatrixXd::Zero(1,1);
+    Eigen::MatrixXd distance = Eigen::MatrixXd::Zero(1,1);
+    obser_cov(0,0) = 1.0;    
+    distance(0,0) = range.range;
+    
+    Eigen::MatrixXd pre_err = filter.GetError(uwb_seq, distance);
+    filter.StateUpdate(uwb_seq, obser_cov);
+    pre_time = cur_time;
+  }
+  
+  Eigen::VectorXd final_state = filter.GetState();
+  Eigen::MatrixXd final_cov = filter.GetCov();
+  
+  nav_msgs::Odometry odom;
+  odom.header.stamp = ros::Time::now();
+  odom.pose.pose.position.x = final_state(0);
+  odom.pose.pose.position.y = final_state(1);
+  odom.pose.pose.position.z = final_state(2);
+  
+  odom_pub.publish(odom);
+  std::cout << "position is " << " [ x: " << final_state(0) 
+                              << " y: "   << final_state(1)
+                              << " z: "   << final_state(2) 
+                              << " ]"     << std::endl;
+  
 }
 
 }; // namespace kalman

@@ -327,7 +327,9 @@ bool uwblocalization::InitPos() {
   x(2) = X0[2];
   x(3) = x(4) = x(5) = 0;
   Eigen::MatrixXd p = Eigen::MatrixXd::Zero(6, 6);
-  
+  std::cout << "x is : " << x(0) << " "
+            << "y is : " << x(1) << " "
+            << "z is : " << x(2) << std::endl;  
   kf_.StateInit(x, p);
   observer_.clear();
   state_ = ONFILTER;
