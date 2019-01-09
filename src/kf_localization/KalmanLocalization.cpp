@@ -11,10 +11,12 @@ KalmanLocalization::KalmanLocalization(ros::NodeHandle n,
   filter_state = Init;
   config_flag = false;
   info_vec.clear();
+  p_cov = Eigen::VectorXd::Zero(6);
   odom_pub = n.advertise<nav_msgs::Odometry>("odom",10);
   
   ReadConfig(file_address_1);
   ReadAcc(file_address_2);
+  ReadCov(file_address_2);
   
   filter.GetAnchorConfig(anchor_posi);
   
@@ -55,6 +57,18 @@ void KalmanLocalization::ReadAcc(std::string address) {
           acc_info["vy"].as<double>(), 
           acc_info["vz"].as<double>();
   
+}
+
+void KalmanLocalization::ReadCov(std::string address) {
+  YAML::Node cov_info = YAML::LoadFile(address);
+  p_cov << cov_info["cov_x"].as<double>(),
+           cov_info["cov_y"].as<double>(),
+           cov_info["cov_z"].as<double>(),
+           cov_info["cov_vx"].as<double>(),
+           cov_info["cov_vy"].as<double>(),
+           cov_info["cov_vz"].as<double>();
+           
+  cov_ob = cov_info["cov_ob"].as<double>();
 }
   
 void KalmanLocalization::InitState(const sensor_msgs::Range& range) {
@@ -133,6 +147,10 @@ void KalmanLocalization::InitPos(const std::vector<IdRange>& info_vec) {
   Eigen::VectorXd init_state(6);
   init_state << location, velo;
   Eigen::MatrixXd init_cov = Eigen::MatrixXd::Identity(6,6);
+  for (int i = 0; i < p_cov.rows(); i++) {
+    init_cov(i,i) = p_cov(i);
+  }
+  
   filter.StateInit(init_state, init_cov);
   
   nav_msgs::Odometry odom;
@@ -181,7 +199,7 @@ void KalmanLocalization::GetPosition(const sensor_msgs::Range& range) {
     
     Eigen::MatrixXd obser_cov = Eigen::MatrixXd::Zero(1,1);
     Eigen::MatrixXd distance = Eigen::MatrixXd::Zero(1,1);
-    obser_cov(0,0) = 1.0;    
+    obser_cov(0,0) = cov_ob;    
     distance(0,0) = range.range;
     
     Eigen::MatrixXd pre_err = filter.GetError(uwb_seq, distance);

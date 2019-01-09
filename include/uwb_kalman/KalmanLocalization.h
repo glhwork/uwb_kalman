@@ -37,6 +37,7 @@ class KalmanLocalization {
   // read the config file of anchors
   void ReadConfig(std::string file_address);
   void ReadAcc(std::string address);
+  void ReadCov(std::string address);
   
   // initial the state
   void InitState(const sensor_msgs::Range& range);
@@ -51,8 +52,11 @@ class KalmanLocalization {
   State filter_state;
   std::vector<IdRange> info_vec;
   Eigen::Matrix<double, 4, 3> anchor_posi;
+  
   Eigen::Vector3d acc;
   Eigen::Vector3d velo;
+  Eigen::VectorXd p_cov; 
+  double cov_ob;
   
   double pre_time;
   bool config_flag;

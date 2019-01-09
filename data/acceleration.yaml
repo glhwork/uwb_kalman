@@ -5,3 +5,12 @@ vz: 3
 ax: 1
 ay: 2
 az: 3
+
+cov_x: 1
+cov_y: 1
+cov_z: 1
+cov_vx: 1
+cov_vy: 1
+cov_vz: 1
+
+cov_ob: 1
