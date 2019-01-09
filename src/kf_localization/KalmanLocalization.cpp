@@ -75,7 +75,7 @@ void KalmanLocalization::InitState(const sensor_msgs::Range& range) {
 
   IdRange info;
   info.id = std::stoi(range.header.frame_id);
-  info.range = range.range;
+  info.range = range.range * 1000.0;
   
   int count = 0;
   if (0 == info_vec.size()) {
@@ -127,8 +127,8 @@ void KalmanLocalization::InitPos(const std::vector<IdRange>& info_vec) {
 
       int index_j = info_vec[j].id - 101;
       x2 = anchor_posi(index_j,0);
-      y2 = anchor_posi(index_j,0);
-      z2 = anchor_posi(index_j,0);
+      y2 = anchor_posi(index_j,1);
+      z2 = anchor_posi(index_j,2);
       d2 = info_vec[j].range;
 
       m(count, 0) = x1 - x2;
@@ -200,7 +200,7 @@ void KalmanLocalization::GetPosition(const sensor_msgs::Range& range) {
     Eigen::MatrixXd obser_cov = Eigen::MatrixXd::Zero(1,1);
     Eigen::MatrixXd distance = Eigen::MatrixXd::Zero(1,1);
     obser_cov(0,0) = cov_ob;    
-    distance(0,0) = range.range;
+    distance(0,0) = range.range * 1000.0;
     
     Eigen::MatrixXd pre_err = filter.GetError(uwb_seq, distance);
     filter.StateUpdate(uwb_seq, obser_cov);
