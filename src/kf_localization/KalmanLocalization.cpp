@@ -6,13 +6,21 @@ using Eigen::ComputeThinV;
 namespace kalman {
 
 KalmanLocalization::KalmanLocalization(ros::NodeHandle n,
+                                       int uwb_side,
                                        std::string file_address_1,
                                        std::string file_address_2) {
   filter_state = Init;
   config_flag = false;
   info_vec.clear();
   p_cov = Eigen::VectorXd::Zero(6);
-  odom_pub = n.advertise<nav_msgs::Odometry>("odom",10);
+  if (1 == uwb_side) {
+    odom_pub = n.advertise<nav_msgs::Odometry>("odom_right",100);   
+  } else if (2 == uwb_side) {
+    odom_pub = n.advertise<nav_msgs::Odometry>("odom_left",100);
+  } else {
+    std::cerr << "Incorrect uwb side number input!!" << std::endl;
+  }
+  
   
   ReadConfig(file_address_1);
   ReadAcc(file_address_2);
@@ -168,7 +176,7 @@ void KalmanLocalization::InitPos(const std::vector<IdRange>& info_vec) {
   
 }
 
-void KalmanLocalization::GetPosition(const sensor_msgs::Range& range) {
+void KalmanLocalization::GetPositionCallBack(const sensor_msgs::Range& range) {
   
   int uwb_seq = std::stoi(range.header.frame_id) - 101;
   double snr = 20.0 * std::log10(range.max_range / range.min_range + 0.001);  

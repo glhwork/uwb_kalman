@@ -66,25 +66,53 @@ target_link_libraries(uwb_data
   ${catkin_LIBRARIES}
 )
 
-add_executable(uwb_driver
-  src/uwblocalization/uwb_driver.cpp
+add_executable(uwb_driver_a
+  src/uwblocalization/uwb_driver_a.cpp
   src/rcm.cpp
   src/rcmIf.cpp
   src/rn.cpp
 )
-target_link_libraries(uwb_driver
+target_link_libraries(uwb_driver_a
   rcm_net
   ${catkin_LIBRARIES}
 )
 
-add_executable(kalman_main
-  src/kf_localization/main.cpp
+add_executable(uwb_driver_b
+  src/uwblocalization/uwb_driver_b.cpp
+  src/rcm.cpp
+  src/rcmIf.cpp
+  src/rn.cpp
+)
+target_link_libraries(uwb_driver_b
+  rcm_net
+  ${catkin_LIBRARIES}
+)
+
+add_executable(left_main
+  src/kf_localization/left_main.cpp
   src/kf_localization/KalmanLocalization.cpp
   src/KalmanFilter.cpp
 )
-target_link_libraries(kalman_main
+target_link_libraries(left_main
   rcm_net
   yaml-cpp
   ${catkin_LIBRARIES}
 )
 
+add_executable(right_main
+  src/kf_localization/left_main.cpp
+  src/kf_localization/KalmanLocalization.cpp
+  src/KalmanFilter.cpp
+)
+target_link_libraries(right_main
+  rcm_net
+  yaml-cpp
+  ${catkin_LIBRARIES}
+)
+
+add_executable(main
+  src/kf_localization/main.cpp
+)
+target_link_libraries(main
+  ${catkin_LIBRARIES}
+)

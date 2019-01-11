@@ -38,52 +38,52 @@ extern "C" {
 std::vector<std::string> split(std::string str, std::string pattern);
 int main(int argc, char *argv[])
 {
-  ros::init(argc, argv, "uwb_driver");
+  ros::init(argc, argv, "uwb_driver_b");
   ros::NodeHandle n;
-  ros::Publisher uwb_pub = n.advertise<sensor_msgs::Range>("uwb_raw_data", 1000);
+  ros::Publisher uwb_pub = n.advertise<sensor_msgs::Range>("uwb_data_b", 1000);
   ros::Rate loop_rate(10);
   int infoMsgType;
 
   //char msgType[100];
-  char ip[15]="192.168.0.100";
+  char ip[15]="192.168.0.99";
   int status;
   //int valid = 0;
 
   rcmMsg_FullRangeInfo rangeInfo;
   rnMsg_GetFullNeighborDatabaseConfirm ndbInfo;
-  printf("step 1 Initialize the interface to the RCM.\n");
+  printf("module 2 - step 1 Initialize the interface to the RCM.\n");
   // initialize the interface to the RCM
   if (rcmIfInit(rcmIfIp, ip) != OK)
   {
-    printf("Initialization failed.\n");
+    printf("module 2 - Initialization failed.\n");
     exit(0);
   }
-  printf("step 2 Set sleep mode idle.\n");
+  printf("module 2 - step 2 Set sleep mode idle.\n");
   if (rcmSleepModeSet(RCRM_SLEEP_MODE_IDLE) != 0)
   {
-    printf("Time out waiting for sleep mode set 1.\n");
+    printf("module 2 - Time out waiting for sleep mode set 1.\n");
     exit(0);
   }
-  printf("step 3 Execute Built-In Test.\n");
+  printf("module 2 - step 3 Execute Built-In Test.\n");
   // execute Built-In Test - verify that radio is healthy
   if (rcmBit(&status) != 0)
   {
-    printf("Time out waiting for BIT.\n");
+    printf("module 2 - Time out waiting for BIT.\n");
     
     exit(0);
   }
   if (status != OK)
   {
-    printf("Built-in test failed - status %d.\n", status);
+    printf("module 2 - Built-in test failed - status %d.\n", status);
     exit(0);
   }
-  printf("step 4 Set sleep mode active.\n");
+  printf("module 2 - step 4 Set sleep mode active.\n");
   if (rcmSleepModeSet(RCRM_SLEEP_MODE_ACTIVE) != 0)
   {
-    printf("Time out waiting for sleep mode set 2.\n");
+    printf("module 2 - Time out waiting for sleep mode set 2.\n");
     exit(0);
   }
-  printf("Init done.\n");
+  printf("module 2 - Init done.\n");
   while(ros::ok()){
     infoMsgType=rcmInfoGet(&rangeInfo, &ndbInfo);
     //std::cout << "type is : " << infoMsgType << std::endl;
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 //  fout.close();
 
   // All done. Restore original configuration
-  printf("\nAll done.\n");
+  printf("\n module 2 - All done.\n");
   rcmIfClose();
   return 0;
 }

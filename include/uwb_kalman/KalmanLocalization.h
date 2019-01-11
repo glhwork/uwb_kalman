@@ -29,6 +29,7 @@ struct IdRange {
 class KalmanLocalization {
  public:
   KalmanLocalization(ros::NodeHandle n,
+                     int uwb_side,
                      std::string file_address_1,
                      std::string file_address_2);
   KalmanLocalization() {}
@@ -45,7 +46,7 @@ class KalmanLocalization {
   // compute the initial position
   void InitPos(const std::vector<IdRange>& info_vec);
   
-  void GetPosition(const sensor_msgs::Range& range);
+  void GetPositionCallBack(const sensor_msgs::Range& range);
   
  private:
   KalmanFilter filter;
